@@ -3,6 +3,8 @@ import socket
 import threading
 import queue
 import time
+import os
+from Crypto.PublicKey import RSA
 
 class Server:
     def __init__(self, host="127.0.0.1", port=50000):
@@ -21,9 +23,38 @@ class Server:
         self.addr = None
         self.client = False
 
+        # initialise the public private key pair
+        self.server_public_key_file = "server_public.pem"
+        self.server_private_key_file = "server_private.pem"
+        self.server_public_key = None
+        self.server_private_key = None
+        self.client_public_key = None
+        self.client_public_key_file = None
+
         # Create threads
         self.readThread = threading.Thread(target=self.read)
         self.writeThread = threading.Thread(target=self.write)
+
+    def get_ip(self):
+        hostname, aliases, ips = socket.gethostbyname_ex(socket.gethostname())
+        return ips
+
+    def generate_keys(self):
+        print("Checking if keys exist...")
+        # check to see if a private & public key pair exist
+        if not os.path.exists(self.server_private_key_file):
+            self.server_private_key = RSA.generate(2048)
+            self.server_public_key = self.server_private_key.public_key()
+            # save the private key to file
+            with open(self.server_private_key_file, "wb") as f:
+                f.write(self.server_private_key.exportKey())
+            # save the public key to file
+            with open(self.server_public_key_file, "wb") as f:
+                f.write(self.server_public_key.exportKey())
+            print("Key pair generated and saved to files")
+        else:
+            with open(self.server_private_key_file, "rb") as f:
+                self.server_private_key = RSA.importKey(f.read())
 
     def hasClient(self):
         return self.client
@@ -35,7 +66,10 @@ class Server:
                 self.writing = False
             if not self.oBuffer.empty():
                 try:
-                    self.conn.sendall(self.oBuffer.get().encode("utf-8"))
+                    #self.conn.sendall(self.oBuffer.get().encode("utf-8"))
+                    message = self.oBuffer.get()
+                    encrypted_message = self.client_public_key.encrypt(message, 32)[0]
+                    self.conn.sendall(encrypted_message)
                     time.sleep(0.1)
                 except socket.error as e:
                     pass
@@ -78,13 +112,14 @@ class Server:
                         # No data on socket, but socket still exists - wait and retry
                         if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
                             time.sleep(0.1)
-                            #print(f"no data to read from {self.addr}")
                         else:
                             # an actual error has occurred, shut down the program as our sole client is now disconnected
                             self.running = False
                             self.conn.shutdown(socket.SHUT_RDWR)
 
     def process(self):
+        # check for or generate keys
+        self.generate_keys()
         # start the reading and writing threads
         self.readThread.start()
         self.writeThread.start()

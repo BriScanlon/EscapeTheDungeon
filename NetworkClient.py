@@ -5,6 +5,7 @@ import time
 import threading
 import queue
 from Crypto.PublicKey import RSA
+import os
 
 class Client:
     def __init__(self, host="127.0.0.1", port=50000):
@@ -20,9 +21,32 @@ class Client:
 
         self.conn = None
 
+        self.server_public_key_file = "server_public.pem"
+        self.server_public_key = None
+        self.client_public_key = None
+        self.client_private_key = None
+        self.client_private_key_file = "client_private.pem"
+        self.client_public_key_file = "client_public.pem"
+
         # Create threads
         self.readThread = threading.Thread(target=self.read)
         self.writeThread = threading.Thread(target=self.write)
+
+    def generate_keys(self):
+        # check to see if a private & public key pair exist
+        if not os.path.exists(self.client_private_key_file):
+            self.client_private_key = RSA.generate(2048)
+            self.client_public_key = self.client_private_key.public_key()
+            # save the private key to file
+            with open(self.client_private_key_file, "wb") as f:
+                f.write(self.client_private_key.exportKey())
+            # save the public key to file
+            with open(self.client_public_key_file, "wb") as f:
+                f.write(self.client_public_key.exportKey())
+            print("Key pair generated and saved to files")
+        else:
+            with open(self.client_private_key_file, "rb") as f:
+                self.client_private_key = RSA.importKey(f.read())
 
     def write(self):
         print("Write thread started")
@@ -77,6 +101,8 @@ class Client:
         self.writeThread.join()
 
     def process(self):
+        # check for or generate keys
+        self.generate_keys()
         # start the reading, writing and ui threads
         self.readThread.start()
         self.writeThread.start()
