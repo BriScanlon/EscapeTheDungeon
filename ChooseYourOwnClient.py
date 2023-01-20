@@ -34,6 +34,12 @@ class abstractClient:
         self.uiThread.join()
 
 if __name__ == "__main__":
-    client = abstractClient("127.0.0.1", 50001)
-    client.process()
-    
+    game_running = True
+    while game_running:
+        user_input = input("Enter the IP Address of the Escape the Dungeon Server: ")
+        if user_input.lower() == "quit":
+            print("Quiting Game.")
+            game_running = False
+            break
+        client = abstractClient(user_input, 50001)
+        client.process()

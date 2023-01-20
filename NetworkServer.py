@@ -4,15 +4,13 @@ import threading
 import queue
 import time
 import os
-from Crypto.PublicKey import RSA
-from Crypto.Cipher import AES
+
 import pickle
 from Crypto.PublicKey import RSA
-from diffiehellman import diffie_hellman
-import json
+
 from base64 import b64encode, b64decode
 from Crypto.Cipher import ChaCha20
-from Crypto.Random import get_random_bytes
+
 
 class Server:
     def __init__(self, host="127.0.0.1", port=50000):
@@ -49,6 +47,10 @@ class Server:
     def get_ip(self):
         hostname, aliases, ips = socket.gethostbyname_ex(socket.gethostname())
         return ips
+
+    def log_chat(self, message):
+        with open("chat_log.txt", "a") as file:
+
 
     def generate_keys(self):
         print("Checking if keys exist...")
@@ -140,6 +142,9 @@ class Server:
                             self.conn.shutdown(socket.SHUT_RDWR)
 
     def process(self):
+        # check IP address
+        ip = self.get_ip()
+        print(f"Escape the dungeon Server IP Address(s) is: {ip}\nUse this to connect from your Escape the dungeon Client\n")
         # check for or generate keys
         self.generate_keys()
         # start the reading and writing threads
