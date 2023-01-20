@@ -46,11 +46,56 @@ class ChooseYourOwnServer:
             There is a door to the North and a door to the west.
             """)
             page5 = Page(5, """Page 5
-            =================The strange cabinet===================
+            =================The strange cabinet room===================
             There is a cabinet in the south-west corner of this otherwise empty room.
             
             There are no other doors than the one you came in from the east.
             
+            """)
+            page6 = Page(6, """Page 6
+            =================The iron chest room===================
+            A dusty, long disused room opens up to you.  In the north-east corner of the room
+            is a heavy, iron bound, large chest.  Iron bands, though pitted with rust, attach the 
+            chest to the floor.  There is no way to move it.
+            
+            """)
+            page7 = Page(7, """Page 7
+            =================The strange cabinet ===================
+            Opening the wooden cabinet, itself not particularly well made, you find 3 shelves.
+            All are empty apart from one slip of paper with the number 341 on it.
+            Maybe this number will come in useful?
+            """)
+            page8 = Page(8, """Page 8
+            =================Huge Double Doors===================
+            As you step into this room, you notice the air doesn't feel as dry and dusty as the others,
+            almost like fresh air!
+            Heavy double doors lead to the north.  There is a large key hole in left door.  Do you have a key?
+            """)
+            page9 = Page(9, """Page 9
+            =================The iron chest ===================
+            The large chest is remarkably solid.  There is a 3 digit combination lock on the front of it.
+            You could attempt to unlock it, if you knew the number?
+            """)
+            page10 = Page(10, """Page 10
+            =================Freedom!===================
+            With the turn of the key, the lock clicks and the doors swing noiselessly open.
+            The day light from outside pours in and you smell the wonderful, fresh air.
+            Congratulations!  You are free.
+            Still no memory though.
+            """)
+            page11 = Page(11, """Page 11
+            =================Ooooo Nasty...===================
+            With the turn of the key, the lock clicks, and small dart flicks out into your hand.
+            It takes but a second for the poison to work.  Your vision greys as you fall to the floor.
+            Nasty.  It's all over for you.
+            """)
+            page341 = Page(341, """Page 341
+            =================The key and a paper==================
+            You turn the tumblers, as soon as the 1 rotates into place, the chest silently swings up and open.
+            A large, ornate key lies at the bottom of the chest.  A slip of paper is next to it.
+            It reads, "Best head back in time to escape."
+            """)
+            page451 = Page(451, """
             """)
 
             page1.add_option(Option(2, "Examine the table, move to page 2"))
@@ -60,7 +105,20 @@ class ChooseYourOwnServer:
             page3.add_option(Option(8, "Go north, move to page 8"))
             page3.add_option(Option(5, "Go west, move to page 5"))
             page3.add_option(Option(1, "Go south, move to page 1"))
-            page4.add_option(Option(6, "Go north, move to page 6"))
+            page4.add_option(Option(6, "Move north, move to page 6"))
+            page5.add_option(Option(7, "Inspect the cabinet, move to page 7"))
+            page5.add_option(Option(3, "Head east, move to page 3"))
+            page6.add_option(Option(9, "Inspect the chest, move to page 9"))
+            page6.add_option(Option(4, "Head south, move to page 4"))
+            page7.add_option(Option(5, "Go back to the room, move to page 5"))
+            page8.add_option((Option(10, "Insert the key and turn anti-clockwise, move to page 10")))
+            page8.add_option(Option(11, "Insert the key and turn clockwise, move to page 11"))
+            page9.add_option(Option(11, "Set the combination to 451, move to page 11"))
+            page9.add_option(Option(341, "Set the combination to 341, move to page 341"))
+            page9.add_option(Option(6, "Leave the chest alone, move to page 6"))
+            page10.add_option(Option(1, "The end, try again. Move to page 1"))
+            page11.add_option(Option(1, "The end, try again. Move to page 1"))
+            page341.add_option(Option(6, "Head back to the room, move to page 6"))
 
             self.book.add_page(page1)
             self.book.add_page(page2)
