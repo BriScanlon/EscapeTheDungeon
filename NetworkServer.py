@@ -82,10 +82,11 @@ class Server:
                     # self.conn.sendall(self.oBuffer.get().encode("utf-8"))
                     message = self.oBuffer.get()
                     plaintext = bytes(message, "utf-8")
-                    encrypted_message = self.cipher.encrypt(plaintext)
+                    self.cipher = ChaCha20.new(key=self.cipher_key)
                     nonce = b64encode(self.cipher.nonce).decode("utf-8")
-                    ct = b64encode(encrypted_message).decode("utf-8")
-                    to_send = {"nonce": nonce, "encrypted_message": ct}
+                    ciphertext = self.cipher.encrypt(plaintext)
+                    ct = b64encode(ciphertext).decode("utf-8")
+                    to_send = {"nonce": nonce, "ciphertext": ct}
                     serialized_dict = pickle.dumps(to_send)
                     self.conn.sendall(serialized_dict)
                     time.sleep(0.1)
@@ -121,7 +122,7 @@ class Server:
                         if messageDump:
                             message = pickle.loads(messageDump)
                             nonce = b64decode(message["nonce"])
-                            ciphertext = b64decode(message["encrypted_message"])
+                            ciphertext = b64decode(message["ciphertext"])
                             self.cipher = ChaCha20.new(key=self.cipher_key, nonce=nonce)
                             plaintext = self.cipher.decrypt(ciphertext)
                             message = plaintext.decode("utf-8")

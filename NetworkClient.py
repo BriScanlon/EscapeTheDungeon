@@ -69,10 +69,10 @@ class Client:
                 message = self.oBuffer.get()
                 plaintext = bytes(message, "utf-8")
                 self.cipher = ChaCha20.new(key=self.cipher_key)
-                encrypted_message = self.cipher.encrypt(plaintext)
+                ciphertext = self.cipher.encrypt(plaintext)
                 nonce = b64encode(self.cipher.nonce).decode("utf-8")
-                ct = b64encode(encrypted_message).decode("utf-8")
-                to_send = {"nonce": nonce, "encrypted_message": ct}
+                ct = b64encode(ciphertext).decode("utf-8")
+                to_send = {"nonce": nonce, "ciphertext": ct}
                 # serialize dictionary for sending over socket as must be byte object.
                 serialized_dict = pickle.dumps(to_send)
                 self.conn.sendall(serialized_dict)
@@ -96,7 +96,7 @@ class Client:
                     if messageDump:
                         message = pickle.loads(messageDump)
                         nonce = b64decode(message["nonce"])
-                        ciphertext = b64decode(message["encrypted_message"])
+                        ciphertext = b64decode(message["ciphertext"])
                         self.cipher = ChaCha20.new(key=self.cipher_key, nonce=nonce)
                         plaintext = self.cipher.decrypt(ciphertext)
                         message = plaintext.decode("utf-8")
