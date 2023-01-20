@@ -5,6 +5,14 @@ import queue
 import time
 import os
 from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES
+import pickle
+from Crypto.PublicKey import RSA
+from diffiehellman import diffie_hellman
+import json
+from base64 import b64encode, b64decode
+from Crypto.Cipher import ChaCha20
+from Crypto.Random import get_random_bytes
 
 class Server:
     def __init__(self, host="127.0.0.1", port=50000):
@@ -29,7 +37,10 @@ class Server:
         self.server_public_key = None
         self.server_private_key = None
         self.client_public_key = None
-        self.client_public_key_file = None
+        self.client_public_key_file = "client_public.pem"
+
+        self.cipher_key = b"12345678901234561234567890123456"
+        self.cipher = ChaCha20.new(key=self.cipher_key)
 
         # Create threads
         self.readThread = threading.Thread(target=self.read)
@@ -43,7 +54,7 @@ class Server:
         print("Checking if keys exist...")
         # check to see if a private & public key pair exist
         if not os.path.exists(self.server_private_key_file):
-            self.server_private_key = RSA.generate(2048)
+            self.server_private_key = RSA.generate(4096)
             self.server_public_key = self.server_private_key.public_key()
             # save the private key to file
             with open(self.server_private_key_file, "wb") as f:
@@ -55,6 +66,8 @@ class Server:
         else:
             with open(self.server_private_key_file, "rb") as f:
                 self.server_private_key = RSA.importKey(f.read())
+            with open(self.client_public_key_file, "rb") as f:
+                self.client_public_key = RSA.importKey(f.read())
 
     def hasClient(self):
         return self.client
@@ -66,10 +79,15 @@ class Server:
                 self.writing = False
             if not self.oBuffer.empty():
                 try:
-                    self.conn.sendall(self.oBuffer.get().encode("utf-8"))
-                    #message = self.oBuffer.get()
-                    #encrypted_message = self.client_public_key.encrypt(message, 32)[0]
-                    #self.conn.sendall(encrypted_message)
+                    # self.conn.sendall(self.oBuffer.get().encode("utf-8"))
+                    message = self.oBuffer.get()
+                    plaintext = bytes(message, "utf-8")
+                    encrypted_message = self.cipher.encrypt(plaintext)
+                    nonce = b64encode(self.cipher.nonce).decode("utf-8")
+                    ct = b64encode(encrypted_message).decode("utf-8")
+                    to_send = {"nonce": nonce, "encrypted_message": ct}
+                    serialized_dict = pickle.dumps(to_send)
+                    self.conn.sendall(serialized_dict)
                     time.sleep(0.1)
                 except socket.error as e:
                     pass
@@ -99,11 +117,14 @@ class Server:
 
                     # attempt to read data from the socket:
                     try:
-                        data = self.conn.recv(1024)
-
-                        # Decode the message and put it into the incoming message buffer to be processed
-                        if data:
-                            message = data.decode("utf-8")
+                        messageDump = self.conn.recv(2048)
+                        if messageDump:
+                            message = pickle.loads(messageDump)
+                            nonce = b64decode(message["nonce"])
+                            ciphertext = b64decode(message["encrypted_message"])
+                            self.cipher = ChaCha20.new(key=self.cipher_key, nonce=nonce)
+                            plaintext = self.cipher.decrypt(ciphertext)
+                            message = plaintext.decode("utf-8")
                             self.iBuffer.put(message)
 
                     # Handle errors that come from the socket
@@ -137,11 +158,6 @@ class Server:
         self.running = False
         self.readThread.join()
         self.writeThread.join()
-
-    def process(self):
-        # start the reading, writing and ui threads
-        self.readThread.start()
-        self.writeThread.start()
 
 
 if __name__=="__main__":

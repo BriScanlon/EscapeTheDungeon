@@ -5,7 +5,13 @@ import time
 import threading
 import queue
 from Crypto.PublicKey import RSA
+from Crypto.Cipher import AES
+import json
+from base64 import b64encode, b64decode
+from Crypto.Cipher import ChaCha20
+from Crypto.Random import get_random_bytes
 import os
+import pickle
 
 class Client:
     def __init__(self, host="127.0.0.1", port=50000):
@@ -28,6 +34,9 @@ class Client:
         self.client_private_key_file = "client_private.pem"
         self.client_public_key_file = "client_public.pem"
 
+        self.cipher_key = b"12345678901234561234567890123456"
+        self.cipher = ChaCha20.new(key=self.cipher_key)
+
         # Create threads
         self.readThread = threading.Thread(target=self.read)
         self.writeThread = threading.Thread(target=self.write)
@@ -35,7 +44,7 @@ class Client:
     def generate_keys(self):
         # check to see if a private & public key pair exist
         if not os.path.exists(self.client_private_key_file):
-            self.client_private_key = RSA.generate(2048)
+            self.client_private_key = RSA.generate(4096)
             self.client_public_key = self.client_private_key.public_key()
             # save the private key to file
             with open(self.client_private_key_file, "wb") as f:
@@ -47,6 +56,8 @@ class Client:
         else:
             with open(self.client_private_key_file, "rb") as f:
                 self.client_private_key = RSA.importKey(f.read())
+            with open(self.server_public_key_file, "rb") as f:
+                self.server_public_key = RSA.importKey(f.read())
 
     def write(self):
         print("Write thread started")
@@ -54,7 +65,17 @@ class Client:
             if not self.running and self.oBuffer.empty():
                 self.writing = False
             if not self.oBuffer.empty():
-                self.conn.sendall(self.oBuffer.get().encode("utf-8"))
+                # self.conn.sendall(self.oBuffer.get().encode("rot13"))
+                message = self.oBuffer.get()
+                plaintext = bytes(message, "utf-8")
+                self.cipher = ChaCha20.new(key=self.cipher_key)
+                encrypted_message = self.cipher.encrypt(plaintext)
+                nonce = b64encode(self.cipher.nonce).decode("utf-8")
+                ct = b64encode(encrypted_message).decode("utf-8")
+                to_send = {"nonce": nonce, "encrypted_message": ct}
+                # serialize dictionary for sending over socket as must be byte object.
+                serialized_dict = pickle.dumps(to_send)
+                self.conn.sendall(serialized_dict)
                 time.sleep(0.1)
 
     def read(self):
@@ -71,9 +92,14 @@ class Client:
 
                 # attempt to read data from the socket:
                 try:
-                    data = self.conn.recv(1024)
-                    if data:
-                        message = data.decode("utf-8")
+                    messageDump = self.conn.recv(2048)
+                    if messageDump:
+                        message = pickle.loads(messageDump)
+                        nonce = b64decode(message["nonce"])
+                        ciphertext = b64decode(message["encrypted_message"])
+                        self.cipher = ChaCha20.new(key=self.cipher_key, nonce=nonce)
+                        plaintext = self.cipher.decrypt(ciphertext)
+                        message = plaintext.decode("utf-8")
                         self.iBuffer.put(message)
 
                 # Handle errors that come from the socket
