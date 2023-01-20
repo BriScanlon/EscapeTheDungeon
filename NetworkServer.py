@@ -66,10 +66,10 @@ class Server:
                 self.writing = False
             if not self.oBuffer.empty():
                 try:
-                    #self.conn.sendall(self.oBuffer.get().encode("utf-8"))
-                    message = self.oBuffer.get()
-                    encrypted_message = self.client_public_key.encrypt(message, 32)[0]
-                    self.conn.sendall(encrypted_message)
+                    self.conn.sendall(self.oBuffer.get().encode("utf-8"))
+                    #message = self.oBuffer.get()
+                    #encrypted_message = self.client_public_key.encrypt(message, 32)[0]
+                    #self.conn.sendall(encrypted_message)
                     time.sleep(0.1)
                 except socket.error as e:
                     pass
