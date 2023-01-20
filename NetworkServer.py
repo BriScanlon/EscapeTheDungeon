@@ -48,10 +48,6 @@ class Server:
         hostname, aliases, ips = socket.gethostbyname_ex(socket.gethostname())
         return ips
 
-    def log_chat(self, message):
-        with open("chat_log.txt", "a") as file:
-
-
     def generate_keys(self):
         print("Checking if keys exist...")
         # check to see if a private & public key pair exist
