@@ -135,7 +135,7 @@ class Server:
                         else:
                             # an actual error has occurred, shut down the program as our sole client is now disconnected
                             self.running = False
-                            self.conn.shutdown(socket.SHUT_RDWR)
+                            break
 
     def process(self):
         # check IP address
@@ -165,4 +165,3 @@ class Server:
 if __name__=="__main__":
     server = Server("127.0.0.1", 50001)
     server.process()
-    

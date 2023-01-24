@@ -181,5 +181,9 @@ class ChooseYourOwnServer:
 
 
 if __name__=="__main__":
-    server = ChooseYourOwnServer("127.0.0.1", 50001)
-    server.process()
+    while True:
+        try:
+            server = ChooseYourOwnServer("127.0.0.1", 50001)
+            server.process()
+        except:
+            print("Restarting the socket...")

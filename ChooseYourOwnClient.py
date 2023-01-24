@@ -21,14 +21,15 @@ class abstractClient:
         # Start the UI thread and start the network components
         self.uiThread.start()
         self.client.process()
+        try:
+            while self.running:
+                message = input("Please enter a command: ")
+                self.client.pushMessage(message)
 
-        while self.running:
-            message = input("Please enter a command: ")
-            self.client.pushMessage(message)
-
-            if message == "Quit":
-                self.running = False
-
+                if message == "Quit":
+                    self.running = False
+        except:
+            print("Error occurred...")
         # stop the network components and the UI thread
         self.client.quit()
         self.uiThread.join()
