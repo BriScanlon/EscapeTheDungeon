@@ -94,48 +94,60 @@ class Server:
 
     def read(self):
         print("Read thread started")
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            # Socket binding to actual IP address/Port combination
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            s.bind((self.HOST, self.PORT))
+        while True:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                # Socket binding to actual IP address/Port combination
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                s.bind((self.HOST, self.PORT))
 
-            # Set socket to listen for incoming connections, then block waiting for a connection
-            s.listen()
-            self.conn, self.addr = s.accept()
-            self.client = True
-            # When a client connection is accepted
-            with self.conn:
-                self.conn.setblocking(False)
-                print(f"Connected by {self.addr}")
+                # Set socket to listen for incoming connections, then block waiting for a connection
+                try:
+                    s.listen()
+                    print("listening...")
+                    self.conn, self.addr = s.accept()
+                    self.client = True
+                    # self.reading = True
+                except:
+                    print("restarting connection...")
+                    self.client = False
+                    self.conn.setblocking(True)
+                    self.reading = False
+                    break
 
-                while self.reading:
-                    # Program has stopped running - self terminate and close the socket.
-                    if not self.running:
-                        self.reading = False
-                        break
+                # When a client connection is accepted
+                with self.conn:
+                    self.conn.setblocking(False)
+                    print(f"Connected by {self.addr}")
 
-                    # attempt to read data from the socket:
-                    try:
-                        messageDump = self.conn.recv(2048)
-                        if messageDump:
-                            message = pickle.loads(messageDump)
-                            nonce = b64decode(message["nonce"])
-                            ciphertext = b64decode(message["ciphertext"])
-                            self.cipher = ChaCha20.new(key=self.cipher_key, nonce=nonce)
-                            plaintext = self.cipher.decrypt(ciphertext)
-                            message = plaintext.decode("utf-8")
-                            self.iBuffer.put(message)
-
-                    # Handle errors that come from the socket
-                    except socket.error as e:
-                        err = e.args[0]
-                        # No data on socket, but socket still exists - wait and retry
-                        if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
-                            time.sleep(0.1)
-                        else:
-                            # an actual error has occurred, shut down the program as our sole client is now disconnected
-                            self.running = False
+                    while self.reading:
+                        # Program has stopped running - self terminate and close the socket.
+                        if not self.running:
+                            self.reading = False
                             break
+
+                        # attempt to read data from the socket:
+                        try:
+                            messageDump = self.conn.recv(2048)
+                            if messageDump:
+                                message = pickle.loads(messageDump)
+                                nonce = b64decode(message["nonce"])
+                                ciphertext = b64decode(message["ciphertext"])
+                                self.cipher = ChaCha20.new(key=self.cipher_key, nonce=nonce)
+                                plaintext = self.cipher.decrypt(ciphertext)
+                                message = plaintext.decode("utf-8")
+                                self.iBuffer.put(message)
+
+                        # Handle errors that come from the socket
+                        except socket.error as e:
+                            err = e.args[0]
+                            # No data on socket, but socket still exists - wait and retry
+                            if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+                                time.sleep(0.1)
+                            else:
+                                # an actual error has occurred, shut down the program as our sole client is now disconnected
+                                print(f"Actual error occurred: {e.args[0]}")
+                                self.running = False
+                                # break
 
     def process(self):
         # check IP address
@@ -162,6 +174,7 @@ class Server:
         self.writeThread.join()
 
 
-if __name__=="__main__":
-    server = Server("127.0.0.1", 50001)
-    server.process()
+if __name__ == "__main__":
+    while True:
+        server = Server("127.0.0.1", 50001)
+        server.process()
