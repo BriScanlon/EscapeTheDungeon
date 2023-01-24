@@ -95,6 +95,7 @@ class Server:
     def read(self):
         print("Read thread started")
         while True:
+            print("Set up the network socket")
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 # Socket binding to actual IP address/Port combination
                 s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -147,7 +148,10 @@ class Server:
                                 # an actual error has occurred, shut down the program as our sole client is now disconnected
                                 print(f"Actual error occurred: {e.args[0]}")
                                 self.running = False
-                                # break
+                                self.client = False
+                                self.conn.setblocking(True)
+                                self.conn.shutdown(socket.SHUT_RDWR)
+                                break
 
     def process(self):
         # check IP address
